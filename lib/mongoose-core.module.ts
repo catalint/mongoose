@@ -22,6 +22,8 @@ import {
   MONGOOSE_MODULE_OPTIONS,
 } from './mongoose.constants';
 
+const usedConnections = new Map();
+
 @Global()
 @Module({})
 export class MongooseCoreModule implements OnApplicationShutdown {
@@ -86,6 +88,10 @@ export class MongooseCoreModule implements OnApplicationShutdown {
       useFactory: async (
         mongooseModuleOptions: MongooseModuleOptions,
       ): Promise<any> => {
+        if (usedConnections.has(mongooseModuleOptions.uri as string)) {
+          console.log('reusing db ', mongooseModuleOptions.uri);
+          return usedConnections.get(mongooseModuleOptions.uri);
+        }
         const {
           retryAttempts,
           retryDelay,
@@ -98,7 +104,7 @@ export class MongooseCoreModule implements OnApplicationShutdown {
         const mongooseConnectionFactory =
           connectionFactory || ((connection) => connection);
 
-        return await defer(async () =>
+        const connection = await defer(async () =>
           mongooseConnectionFactory(
             mongoose.createConnection(mongooseModuleOptions.uri as string, {
               useNewUrlParser: true,
@@ -115,6 +121,8 @@ export class MongooseCoreModule implements OnApplicationShutdown {
             ),
           )
           .toPromise();
+        usedConnections.set(mongooseModuleOptions.uri, connection);
+        return connection;
       },
       inject: [MONGOOSE_MODULE_OPTIONS],
     };
