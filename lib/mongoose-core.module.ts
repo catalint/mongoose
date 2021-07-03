@@ -89,7 +89,6 @@ export class MongooseCoreModule implements OnApplicationShutdown {
         mongooseModuleOptions: MongooseModuleOptions,
       ): Promise<any> => {
         if (usedConnections.has(mongooseModuleOptions.uri as string)) {
-          console.log('reusing db ', mongooseModuleOptions.uri);
           return usedConnections.get(mongooseModuleOptions.uri);
         }
         const {
